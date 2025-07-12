@@ -1,0 +1,988 @@
+
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณ Kt/V - หน่วยไตเทียม สถาบันบำราศนราดูร</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mint: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .step-indicator.active .step-circle {
+            background: linear-gradient(135deg, #14b8a6, #0d9488);
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(20, 184, 166, 0.3);
+        }
+        .step-indicator.completed .step-circle {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .mode-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #0d9488, #14b8a6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .recommendation-card {
+            transition: all 0.3s ease;
+        }
+        .recommendation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        .boost-step {
+            position: relative;
+            overflow: hidden;
+        }
+        .boost-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        .boost-step:hover::before {
+            left: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-mint-50 via-white to-mint-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex justify-center items-center mb-6">
+                <div class="relative">
+                    <i class="fas fa-heartbeat text-mint-600 text-6xl mr-4 pulse-animation"></i>
+                    <div class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-ping"></div>
+                </div>
+                <div>
+                    <h1 class="text-5xl font-bold gradient-text mb-2">ระบบคำนวณ Kt/V</h1>
+                    <p class="text-mint-600 text-lg">หน่วยไตเทียม สถาบันบำราศนราดูร</p>
+                    <p class="text-mint-500 text-sm">ประเมินประสิทธิภาพการฟอกไต HD & PD พร้อมคำแนะนำอัจฉริยะ</p>
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-mint-500 to-mint-600 text-white rounded-2xl p-4 max-w-5xl mx-auto">
+                <div class="flex justify-center items-center space-x-8 flex-wrap">
+                    <div class="flex items-center">
+                        <i class="fas fa-procedures text-2xl mr-2"></i>
+                        <span class="font-semibold">Hemodialysis</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-shopping-bag text-2xl mr-2"></i>
+                        <span class="font-semibold">Peritoneal Dialysis</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-brain text-2xl mr-2"></i>
+                        <span class="font-semibold">Smart Recommendations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boosted Progress Steps -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-mint-100 boost-step">
+            <div class="flex justify-between items-center relative">
+                <!-- Progress Line -->
+                <div class="absolute top-6 left-0 right-0 h-2 bg-gray-200 rounded-full">
+                    <div id="progressLine" class="h-full bg-gradient-to-r from-mint-500 to-mint-600 rounded-full transition-all duration-700" style="width: 0%"></div>
+                </div>
+                
+                <!-- Step 1 -->
+                <div id="step1" class="step-indicator active flex flex-col items-center relative z-10">
+                    <div class="step-circle w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl mb-3 text-white shadow-lg">
+                        <i class="fas fa-toggle-on"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-mint-700">เลือกโหมด</span>
+                </div>
+                
+                <!-- Step 2 -->
+                <div id="step2" class="step-indicator flex flex-col items-center relative z-10">
+                    <div class="step-circle w-14 h-14 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-xl mb-3 shadow-lg">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-500">กรอกข้อมูล</span>
+                </div>
+                
+                <!-- Step 3 -->
+                <div id="step3" class="step-indicator flex flex-col items-center relative z-10">
+                    <div class="step-circle w-14 h-14 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-xl mb-3 shadow-lg">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-500">ผลลัพธ์</span>
+                </div>
+                
+                <!-- Step 4 -->
+                <div id="step4" class="step-indicator flex flex-col items-center relative z-10">
+                    <div class="step-circle w-14 h-14 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-xl mb-3 shadow-lg">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-500">คำแนะนำ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Selection -->
+        <div id="modeSelection" class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-mint-100">
+            <h2 class="text-3xl font-bold text-mint-800 mb-8 text-center flex items-center justify-center">
+                <i class="fas fa-stethoscope text-mint-600 mr-4"></i>
+                เลือกโหมดการฟอกไต
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <!-- HD 3x per week -->
+                <button id="hd3x" class="mode-card bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg boost-step">
+                    <div class="text-center">
+                        <i class="fas fa-procedures text-4xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-3">Hemodialysis</h3>
+                        <div class="text-lg font-semibold mb-4">3 ครั้งต่อสัปดาห์</div>
+                        <div class="bg-white bg-opacity-20 rounded-xl p-3 mb-3">
+                            <div class="text-sm">
+                                <div class="text-blue-100 font-semibold">Min ≥ 1.2 | Target ≥ 1.8</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center text-blue-100 text-sm">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span>มาตรฐานทั่วไป</span>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- HD 2x per week -->
+                <button id="hd2x" class="mode-card bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg boost-step">
+                    <div class="text-center">
+                        <i class="fas fa-user-clock text-4xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-3">Hemodialysis</h3>
+                        <div class="text-lg font-semibold mb-4">2 ครั้งต่อสัปดาห์</div>
+                        <div class="bg-white bg-opacity-20 rounded-xl p-3 mb-3">
+                            <div class="text-sm">
+                                <div class="text-purple-100 font-semibold">Min ≥ 1.4 | Target ≥ 2.1</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center text-purple-100 text-sm">
+                            <i class="fas fa-user-injured mr-2"></i>
+                            <span>ผู้ป่วยพิเศษ</span>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- PD -->
+                <button id="pd" class="mode-card bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg boost-step">
+                    <div class="text-center">
+                        <i class="fas fa-shopping-bag text-4xl mb-4"></i>
+                        <h3 class="text-xl font-bold mb-3">Peritoneal Dialysis</h3>
+                        <div class="text-lg font-semibold mb-4">รายสัปดาห์</div>
+                        <div class="bg-white bg-opacity-20 rounded-xl p-3 mb-3">
+                            <div class="text-sm">
+                                <div class="text-emerald-100 font-semibold">Min ≥ 1.7 | Target ≥ 1.8-2.0</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center text-emerald-100 text-sm">
+                            <i class="fas fa-home mr-2"></i>
+                            <span>CAPD/APD + Residual</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- HD Calculator -->
+        <div id="hdCalculator" class="calculator-section hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-mint-100 boost-step">
+                <h2 class="text-3xl font-bold text-mint-800 mb-8 flex items-center">
+                    <i class="fas fa-calculator text-mint-600 mr-4"></i>
+                    คำนวณ Kt/V - <span id="hdFrequency" class="text-mint-600"></span>
+                </h2>
+                
+                <!-- Formula Display -->
+                <div class="bg-gradient-to-r from-mint-50 to-mint-100 rounded-2xl p-6 mb-8 border border-mint-200">
+                    <h3 class="font-bold text-mint-800 mb-4 flex items-center text-xl">
+                        <i class="fas fa-formula text-mint-600 mr-3"></i>
+                        สูตร Daugirdas II (KDOQI Guidelines)
+                    </h3>
+                    <div class="bg-white rounded-xl p-4 mb-4 border-2 border-mint-200">
+                        <p class="text-mint-700 font-mono text-xl text-center font-bold">Kt/V = -ln(R - 0.008 × t) + (4 - 3.5 × R) × UF/W</p>
+                        <p class="text-mint-600 text-center mt-2">โดย R = Post-BUN ÷ Pre-BUN</p>
+                    </div>
+                    <div id="hdTargetDisplay" class="bg-white rounded-xl p-4 border-2 border-mint-200">
+                        <!-- Target values will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Lab Values -->
+                    <div class="space-y-6">
+                        <div class="bg-mint-50 rounded-xl p-6 border border-mint-200 boost-step">
+                            <h3 class="text-xl font-bold text-mint-800 mb-6 flex items-center">
+                                <i class="fas fa-vial text-mint-600 mr-3"></i>
+                                ค่าทางห้องปฏิบัติการ
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-tint text-mint-600 mr-2"></i>
+                                        Pre-dialysis BUN (mg/dL)
+                                    </label>
+                                    <input type="number" id="preBUN" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg transition-colors" placeholder="เช่น 80" min="0" step="0.1">
+                                    <p class="text-mint-600 text-sm mt-1">ค่า BUN ก่อนเริ่มฟอกเลือด</p>
+                                </div>
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-tint text-mint-600 mr-2"></i>
+                                        Post-dialysis BUN (mg/dL)
+                                    </label>
+                                    <input type="number" id="postBUN" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg transition-colors" placeholder="เช่น 25" min="0" step="0.1">
+                                    <p class="text-mint-600 text-sm mt-1">ค่า BUN หลังฟอกเลือดเสร็จ</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dialysis Parameters -->
+                    <div class="space-y-6">
+                        <div class="bg-mint-50 rounded-xl p-6 border border-mint-200 boost-step">
+                            <h3 class="text-xl font-bold text-mint-800 mb-6 flex items-center">
+                                <i class="fas fa-cogs text-mint-600 mr-3"></i>
+                                พารามิเตอร์การฟอกเลือด
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-clock text-mint-600 mr-2"></i>
+                                        เวลาฟอกเลือด (ชั่วโมง)
+                                    </label>
+                                    <input type="number" id="dialysisTime" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg transition-colors" placeholder="เช่น 4.0" step="0.5" min="0">
+                                    <p class="text-mint-600 text-sm mt-1">ระยะเวลาที่ใช้ในการฟอกเลือด</p>
+                                </div>
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-weight text-mint-600 mr-2"></i>
+                                        น้ำหนักหลังฟอก (kg)
+                                    </label>
+                                    <input type="number" id="postWeight" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg transition-colors" placeholder="เช่น 65.0" min="0" step="0.1">
+                                    <p class="text-mint-600 text-sm mt-1">น้ำหนักผู้ป่วยหลังฟอกเลือดเสร็จ</p>
+                                </div>
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-droplet text-mint-600 mr-2"></i>
+                                        Ultrafiltration (L)
+                                    </label>
+                                    <input type="number" id="ultrafiltration" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg transition-colors" placeholder="เช่น 2.5" step="0.1" min="0">
+                                    <p class="text-mint-600 text-sm mt-1">ปริมาณน้ำที่ดึงออกจากร่างกาย</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="calculateHD()" class="w-full bg-gradient-to-r from-mint-600 to-mint-700 hover:from-mint-700 hover:to-mint-800 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:scale-105 boost-step">
+                            <i class="fas fa-calculator mr-3"></i>
+                            คำนวณ Kt/V
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PD Calculator -->
+        <div id="pdCalculator" class="calculator-section hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-mint-100 boost-step">
+                <h2 class="text-3xl font-bold text-mint-800 mb-8 flex items-center">
+                    <i class="fas fa-calculator text-mint-600 mr-4"></i>
+                    คำนวณ Kt/V - Peritoneal Dialysis
+                </h2>
+                
+                <div class="bg-gradient-to-r from-mint-50 to-mint-100 rounded-2xl p-6 mb-8 border border-mint-200">
+                    <h3 class="font-bold text-mint-800 mb-4 flex items-center text-xl">
+                        <i class="fas fa-info-circle text-mint-600 mr-3"></i>
+                        Total Weekly Kt/V (KDOQI Guidelines)
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-lg p-4 border border-mint-200">
+                            <h4 class="font-semibold text-mint-800 mb-2">เป้าหมาย</h4>
+                            <p class="text-mint-700 text-lg font-bold">Minimum: ≥ 1.7</p>
+                            <p class="text-mint-700 text-lg font-bold">Target: ≥ 1.8-2.0</p>
+                            <p class="text-mint-600 text-sm">รวมค่าจาก Peritoneal + Residual</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 border border-mint-200">
+                            <h4 class="font-semibold text-mint-800 mb-2">องค์ประกอบ</h4>
+                            <ul class="text-sm text-mint-700 space-y-1">
+                                <li>• CAPD/APD Kt/V</li>
+                                <li>• Residual renal function</li>
+                                <li>• Total = Peritoneal + Residual</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <div class="bg-mint-50 rounded-xl p-6 border border-mint-200 boost-step">
+                            <h3 class="text-xl font-bold text-mint-800 mb-6 flex items-center">
+                                <i class="fas fa-flask text-mint-600 mr-3"></i>
+                                ค่า Kt/V รายสัปดาห์
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-shopping-bag text-mint-600 mr-2"></i>
+                                        Peritoneal Kt/V (ต่อสัปดาห์)
+                                    </label>
+                                    <input type="number" id="peritonealKtV" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg" placeholder="เช่น 1.2" step="0.1" min="0">
+                                    <p class="text-mint-600 text-sm mt-1">ค่า Kt/V จาก CAPD หรือ APD</p>
+                                </div>
+                                <div>
+                                    <label class="block text-mint-800 font-semibold mb-2 flex items-center">
+                                        <i class="fas fa-kidneys text-mint-600 mr-2"></i>
+                                        Residual Kt/V (ต่อสัปดาห์)
+                                    </label>
+                                    <input type="number" id="residualKtV" class="w-full p-4 border-2 border-mint-200 rounded-xl focus:border-mint-500 focus:outline-none text-lg" placeholder="เช่น 0.8" step="0.1" min="0">
+                                    <p class="text-mint-600 text-sm mt-1">ค่า Kt/V จากไตที่เหลืออยู่</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="calculatePD()" class="w-full bg-gradient-to-r from-mint-600 to-mint-700 hover:from-mint-700 hover:to-mint-800 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:scale-105 boost-step">
+                            <i class="fas fa-calculator mr-3"></i>
+                            คำนวณ Total Kt/V
+                        </button>
+                    </div>
+                    <div class="bg-mint-50 rounded-xl p-6 border border-mint-200 boost-step">
+                        <h3 class="text-xl font-bold text-mint-800 mb-4 flex items-center">
+                            <i class="fas fa-lightbulb text-mint-600 mr-3"></i>
+                            คำแนะนำการใช้งาน
+                        </h3>
+                        <div class="space-y-3 text-mint-700">
+                            <div class="flex items-start">
+                                <i class="fas fa-check-circle text-mint-500 mr-2 mt-1"></i>
+                                <span>กรอกค่า Peritoneal Kt/V จากการคำนวณ PET หรือ Adequest</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fas fa-check-circle text-mint-500 mr-2 mt-1"></i>
+                                <span>กรอกค่า Residual Kt/V จากการเก็บปัสสาวะ 24 ชั่วโมง</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fas fa-check-circle text-mint-500 mr-2 mt-1"></i>
+                                <span>ระบบจะคำนวณค่ารวมและประเมินความเพียงพอ</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fas fa-exclamation-triangle text-yellow-500 mr-2 mt-1"></i>
+                                <span>หากค่าต่ำกว่า 1.7 ระบบจะแสดงคำแนะนำอัตโนมัติ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden bg-white rounded-2xl shadow-xl p-8 mb-8 border border-mint-100 boost-step">
+            <h2 class="text-3xl font-bold text-mint-800 mb-8 flex items-center">
+                <i class="fas fa-chart-line text-mint-600 mr-4"></i>
+                ผลการคำนวณและการประเมิน
+            </h2>
+            <div id="resultContent"></div>
+            <div class="text-center mt-8">
+                <button onclick="resetCalculator()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-xl transition-colors duration-300 flex items-center justify-center mx-auto boost-step">
+                    <i class="fas fa-redo mr-2"></i>
+                    คำนวณใหม่
+                </button>
+            </div>
+        </div>
+
+        <!-- Smart Recommendations -->
+        <div id="smartRecommendations" class="hidden">
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl shadow-xl p-8 mb-8">
+                <h2 class="text-3xl font-bold mb-6 flex items-center justify-center">
+                    <i class="fas fa-brain text-4xl mr-4 pulse-animation"></i>
+                    คำแนะนำอัจฉริยะ - ปรับปรุงประสิทธิภาพการฟอกไต
+                </h2>
+                <p class="text-center text-xl text-orange-100 mb-4">ค่า Kt/V ต่ำกว่ามาตรฐาน ระบบแนะนำการปรับปรุงดังนี้</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8 mb-8">
+                <!-- Technical Recommendations -->
+                <div class="bg-white rounded-2xl shadow-xl p-8 border border-mint-100 boost-step">
+                    <h3 class="text-2xl font-bold text-mint-800 mb-6 flex items-center">
+                        <i class="fas fa-cogs text-mint-600 mr-3"></i>
+                        คำแนะนำทางเทคนิค
+                    </h3>
+                    <div id="technicalRecommendations" class="space-y-4">
+                        <!-- Content will be dynamically inserted -->
+                    </div>
+                </div>
+
+                <!-- Patient Care Recommendations -->
+                <div class="bg-white rounded-2xl shadow-xl p-8 border border-mint-100 boost-step">
+                    <h3 class="text-2xl font-bold text-mint-800 mb-6 flex items-center">
+                        <i class="fas fa-user-md text-mint-600 mr-3"></i>
+                        คำแนะนำการดูแลผู้ป่วย
+                    </h3>
+                    <div id="patientCareRecommendations" class="space-y-4">
+                        <!-- Content will be dynamically inserted -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Actions -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-mint-100 boost-step">
+                <h3 class="text-2xl font-bold text-mint-800 mb-6 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                    การดำเนินการเร่งด่วน
+                </h3>
+                <div id="priorityActions" class="grid md:grid-cols-3 gap-4">
+                    <!-- Content will be dynamically inserted -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gradient-to-r from-mint-600 to-mint-700 text-white rounded-2xl shadow-xl p-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4 flex items-center justify-center">
+                    <i class="fas fa-hospital text-mint-200 mr-3"></i>
+                    หน่วยไตเทียม สถาบันบำราศนราดูร
+                </h3>
+                <p class="text-mint-100 text-lg font-semibold">ระบบประเมินประสิทธิภาพการฟอกไตพร้อมคำแนะนำอัจฉริยะ</p>
+                <div class="mt-6 flex justify-center items-center text-mint-200">
+                    <i class="fas fa-heart mr-2 pulse-animation"></i>
+                    <span>เพื่อการดูแลผู้ป่วยไตเทียมที่ดีที่สุด</span>
+                    <i class="fas fa-heart ml-2 pulse-animation"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = null;
+        let currentStep = 1;
+
+        // Mode selection
+        document.getElementById('hd3x').addEventListener('click', function() {
+            currentMode = 'HD3X';
+            selectMode('HD3X');
+        });
+
+        document.getElementById('hd2x').addEventListener('click', function() {
+            currentMode = 'HD2X';
+            selectMode('HD2X');
+        });
+
+        document.getElementById('pd').addEventListener('click', function() {
+            currentMode = 'PD';
+            selectMode('PD');
+        });
+
+        function selectMode(mode) {
+            updateProgress(2);
+            if (mode === 'PD') {
+                showPDCalculator();
+            } else {
+                showHDCalculator(mode);
+            }
+        }
+
+        function updateProgress(step) {
+            currentStep = step;
+            
+            // Update progress line
+            const progressPercentage = ((step - 1) / 3) * 100;
+            document.getElementById('progressLine').style.width = progressPercentage + '%';
+            
+            // Reset all steps
+            document.querySelectorAll('.step-indicator').forEach(el => {
+                el.classList.remove('active', 'completed');
+                const circle = el.querySelector('.step-circle');
+                circle.classList.remove('bg-mint-500', 'text-white');
+                circle.classList.add('bg-gray-300', 'text-gray-600');
+                const text = el.querySelector('span');
+                text.classList.remove('text-mint-700');
+                text.classList.add('text-gray-500');
+            });
+
+            // Activate current and previous steps
+            for (let i = 1; i <= step; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                if (i < step) {
+                    stepEl.classList.add('completed');
+                } else {
+                    stepEl.classList.add('active');
+                }
+                const circle = stepEl.querySelector('.step-circle');
+                const text = stepEl.querySelector('span');
+                circle.classList.remove('bg-gray-300', 'text-gray-600');
+                circle.classList.add('bg-mint-500', 'text-white');
+                text.classList.remove('text-gray-500');
+                text.classList.add('text-mint-700');
+            }
+        }
+
+        function showHDCalculator(mode) {
+            document.getElementById('modeSelection').classList.add('hidden');
+            document.getElementById('hdCalculator').classList.remove('hidden');
+            document.getElementById('pdCalculator').classList.add('hidden');
+            
+            // Update frequency display
+            const freqText = mode === 'HD3X' ? 'Hemodialysis 3 ครั้งต่อสัปดาห์' : 'Hemodialysis 2 ครั้งต่อสัปดาห์';
+            document.getElementById('hdFrequency').textContent = freqText;
+            
+            // Update target display
+            const targetDisplay = document.getElementById('hdTargetDisplay');
+            const minimum = mode === 'HD3X' ? '1.2' : '1.4';
+            const target = mode === 'HD3X' ? '1.8' : '2.1';
+            
+            targetDisplay.innerHTML = `
+                <h4 class="font-semibold text-mint-800 mb-3 text-center">เกณฑ์การประเมิน - ${freqText}</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-yellow-800 font-semibold">Minimum</p>
+                        <p class="text-yellow-900 text-2xl font-bold">≥ ${minimum}</p>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                        <p class="text-green-800 font-semibold">Target</p>
+                        <p class="text-green-900 text-2xl font-bold">≥ ${target}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showPDCalculator() {
+            document.getElementById('modeSelection').classList.add('hidden');
+            document.getElementById('hdCalculator').classList.add('hidden');
+            document.getElementById('pdCalculator').classList.remove('hidden');
+        }
+
+        function calculateHD() {
+            const preBUN = parseFloat(document.getElementById('preBUN').value);
+            const postBUN = parseFloat(document.getElementById('postBUN').value);
+            const time = parseFloat(document.getElementById('dialysisTime').value);
+            const weight = parseFloat(document.getElementById('postWeight').value);
+            const uf = parseFloat(document.getElementById('ultrafiltration').value);
+
+            // Validation
+            if (!preBUN || !postBUN || !time || !weight || uf === null || uf === undefined) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            if (postBUN >= preBUN) {
+                alert('ค่า Post-BUN ต้องน้อยกว่า Pre-BUN');
+                return;
+            }
+
+            if (time <= 0 || weight <= 0 || uf < 0) {
+                alert('กรุณาตรวจสอบค่าที่กรอก');
+                return;
+            }
+
+            // Calculate Kt/V using Daugirdas II formula
+            const R = postBUN / preBUN;
+            const ktv = -Math.log(R - 0.008 * time) + (4 - 3.5 * R) * (uf / weight);
+            
+            displayResults(ktv, 'HD', { preBUN, postBUN, time, weight, uf });
+            updateProgress(3);
+        }
+
+        function calculatePD() {
+            const peritonealKtV = parseFloat(document.getElementById('peritonealKtV').value);
+            const residualKtV = parseFloat(document.getElementById('residualKtV').value);
+
+            if (!peritonealKtV || !residualKtV) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            const totalKtV = peritonealKtV + residualKtV;
+            displayResults(totalKtV, 'PD', { peritonealKtV, residualKtV });
+            updateProgress(3);
+        }
+
+        function displayResults(ktv, type, inputData) {
+            const resultsDiv = document.getElementById('results');
+            const contentDiv = document.getElementById('resultContent');
+            const smartRecommendationsDiv = document.getElementById('smartRecommendations');
+            
+            let minimum, target, freqText, status, statusColor, statusIcon, interpretation, bgColor;
+            
+            if (type === 'HD') {
+                if (currentMode === 'HD3X') {
+                    minimum = 1.2;
+                    target = 1.8;
+                    freqText = 'Hemodialysis 3 ครั้งต่อสัปดาห์';
+                } else {
+                    minimum = 1.4;
+                    target = 2.1;
+                    freqText = 'Hemodialysis 2 ครั้งต่อสัปดาห์';
+                }
+            } else {
+                minimum = 1.7;
+                target = 1.8; // Target range 1.8-2.0
+                freqText = 'Peritoneal Dialysis รายสัปดาห์';
+            }
+            
+            if (ktv >= target) {
+                status = 'ดีเยี่ยม (Target)';
+                statusColor = 'text-green-600';
+                statusIcon = 'fas fa-check-circle';
+                interpretation = 'ประสิทธิภาพการฟอกไตอยู่ในระดับเป้าหมาย ผู้ป่วยได้รับการฟอกไตที่เพียงพอมาก';
+                bgColor = 'bg-green-50 border-green-200';
+            } else if (ktv >= minimum) {
+                status = 'เพียงพอ (Minimum)';
+                statusColor = 'text-yellow-600';
+                statusIcon = 'fas fa-exclamation-circle';
+                interpretation = 'ประสิทธิภาพการฟอกไตอยู่ในเกณฑ์ขั้นต่ำ ควรพยายามปรับปรุงให้ถึงเป้าหมาย';
+                bgColor = 'bg-yellow-50 border-yellow-200';
+            } else {
+                status = 'ไม่เพียงพอ';
+                statusColor = 'text-red-600';
+                statusIcon = 'fas fa-times-circle';
+                interpretation = 'ประสิทธิภาพการฟอกไตต่ำกว่าเกณฑ์มาตรฐาน ต้องปรับปรุงการรักษาทันที';
+                bgColor = 'bg-red-50 border-red-200';
+            }
+
+            const resultHTML = `
+                <div class="grid lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Main Result -->
+                    <div class="lg:col-span-2 ${bgColor} rounded-2xl p-8 border-2">
+                        <div class="text-center">
+                            <i class="${statusIcon} ${statusColor} text-6xl mb-4"></i>
+                            <div class="text-6xl font-bold text-mint-800 mb-2">${ktv.toFixed(2)}</div>
+                            <div class="text-xl text-mint-600 mb-4">Kt/V (${freqText})</div>
+                            <div class="text-2xl font-bold ${statusColor} mb-4">${status}</div>
+                            <div class="text-mint-700 text-lg max-w-md mx-auto">${interpretation}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Targets -->
+                    <div class="space-y-4">
+                        <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-mint-200">
+                            <h4 class="font-bold text-mint-800 mb-4 flex items-center">
+                                <i class="fas fa-target text-mint-600 mr-2"></i>
+                                เกณฑ์การประเมิน
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-2 rounded-lg ${ktv >= minimum ? 'bg-green-100' : 'bg-red-100'}">
+                                    <span class="font-semibold">Minimum:</span>
+                                    <span class="font-bold">≥ ${minimum}</span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 rounded-lg ${ktv >= target ? 'bg-green-100' : 'bg-gray-100'}">
+                                    <span class="font-semibold">Target:</span>
+                                    <span class="font-bold">≥ ${target}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-mint-200">
+                            <h4 class="font-bold text-mint-800 mb-4 flex items-center">
+                                <i class="fas fa-info-circle text-mint-600 mr-2"></i>
+                                ข้อมูลเพิ่มเติม
+                            </h4>
+                            <div class="space-y-2 text-sm text-mint-700">
+                                <p><strong>โหมด:</strong> ${freqText}</p>
+                                <p><strong>สูตร:</strong> ${type === 'HD' ? 'Daugirdas II' : 'Total Weekly'}</p>
+                                <p><strong>มาตรฐาน:</strong> KDOQI Guidelines</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            contentDiv.innerHTML = resultHTML;
+            resultsDiv.classList.remove('hidden');
+            
+            // Show smart recommendations if inadequate
+            if (ktv < minimum) {
+                showSmartRecommendations(type, ktv, minimum, target, inputData);
+                smartRecommendationsDiv.classList.remove('hidden');
+                updateProgress(4);
+            } else {
+                smartRecommendationsDiv.classList.add('hidden');
+            }
+
+            // Smooth scroll to results
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showSmartRecommendations(type, currentKtv, minimum, target, inputData) {
+            const technicalDiv = document.getElementById('technicalRecommendations');
+            const patientCareDiv = document.getElementById('patientCareRecommendations');
+            const priorityDiv = document.getElementById('priorityActions');
+            
+            const deficit = minimum - currentKtv;
+            const targetDeficit = target - currentKtv;
+            
+            if (type === 'HD') {
+                // Technical recommendations for HD
+                technicalDiv.innerHTML = `
+                    <div class="recommendation-card bg-blue-50 rounded-xl p-4 border-l-4 border-blue-400">
+                        <h4 class="font-bold text-blue-800 mb-3 flex items-center">
+                            <i class="fas fa-clock text-blue-600 mr-2"></i>
+                            เพิ่มระยะเวลาการฟอก
+                        </h4>
+                        <div class="space-y-2 text-blue-700">
+                            <p class="font-semibold">เวลาปัจจุบัน: ${inputData.time} ชั่วโมง</p>
+                            <p class="text-sm">• แนะนำเพิ่มเป็น ${Math.max(4.5, inputData.time + 0.5)} ชั่วโมง</p>
+                            <p class="text-sm">• การเพิ่มเวลา 30 นาที สามารถเพิ่ม Kt/V ได้ประมาณ 0.1-0.15</p>
+                            <p class="text-sm">• เป้าหมาย: 4-5 ชั่วโมงต่อครั้ง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-purple-50 rounded-xl p-4 border-l-4 border-purple-400">
+                        <h4 class="font-bold text-purple-800 mb-3 flex items-center">
+                            <i class="fas fa-tachometer-alt text-purple-600 mr-2"></i>
+                            เพิ่ม Blood Flow Rate (BFR)
+                        </h4>
+                        <div class="space-y-2 text-purple-700">
+                            <p class="text-sm">• เพิ่ม BFR เป็น 300-400 mL/min</p>
+                            <p class="text-sm">• ตรวจสอบ vascular access ให้รองรับ flow rate สูง</p>
+                            <p class="text-sm">• การเพิ่ม BFR จาก 250 เป็น 350 mL/min เพิ่ม Kt/V ได้ 10-15%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-green-50 rounded-xl p-4 border-l-4 border-green-400">
+                        <h4 class="font-bold text-green-800 mb-3 flex items-center">
+                            <i class="fas fa-filter text-green-600 mr-2"></i>
+                            เปลี่ยนตัวกรองให้ใหญ่ขึ้น
+                        </h4>
+                        <div class="space-y-2 text-green-700">
+                            <p class="text-sm">• ใช้ High-flux dialyzer</p>
+                            <p class="text-sm">• เพิ่มพื้นที่ผิว (Surface area) ≥ 1.8 m²</p>
+                            <p class="text-sm">• พิจารณา dialyzer ที่มี KoA สูง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-indigo-50 rounded-xl p-4 border-l-4 border-indigo-400">
+                        <h4 class="font-bold text-indigo-800 mb-3 flex items-center">
+                            <i class="fas fa-water text-indigo-600 mr-2"></i>
+                            พิจารณาใช้ระบบ HDF
+                        </h4>
+                        <div class="space-y-2 text-indigo-700">
+                            <p class="text-sm">• Hemodiafiltration (HDF) เพิ่มประสิทธิภาพ 20-30%</p>
+                            <p class="text-sm">• Online HDF ให้ผลลัพธ์ดีกว่า conventional HD</p>
+                            <p class="text-sm">• เหมาะสำหรับผู้ป่วยที่ Kt/V ต่ำแม้ปรับพารามิเตอร์แล้ว</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Patient care recommendations for HD
+                patientCareDiv.innerHTML = `
+                    <div class="recommendation-card bg-red-50 rounded-xl p-4 border-l-4 border-red-400">
+                        <h4 class="font-bold text-red-800 mb-3 flex items-center">
+                            <i class="fas fa-ban text-red-600 mr-2"></i>
+                            ห้ามออกก่อนครบเวลา
+                        </h4>
+                        <div class="space-y-2 text-red-700">
+                            <p class="text-sm">• การออกก่อนเวลา 15 นาที ลด Kt/V ได้ 0.1-0.2</p>
+                            <p class="text-sm">• อธิบายความสำคัญของการฟอกครบเวลา</p>
+                            <p class="text-sm">• จัดกิจกรรมเพื่อลดความเบื่อหน่าย</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-orange-50 rounded-xl p-4 border-l-4 border-orange-400">
+                        <h4 class="font-bold text-orange-800 mb-3 flex items-center">
+                            <i class="fas fa-utensils text-orange-600 mr-2"></i>
+                            หลีกเลี่ยงอาหารระหว่างฟอก
+                        </h4>
+                        <div class="space-y-2 text-orange-700">
+                            <p class="text-sm">• การกินอาหารระหว่างฟอกลดประสิทธิภาพ 10-15%</p>
+                            <p class="text-sm">• เลือดไปเลี้ยงระบบย่อยอาหาร ลด clearance</p>
+                            <p class="text-sm">• แนะนำกินอาหารก่อนมาฟอก 2-3 ชั่วโมง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-teal-50 rounded-xl p-4 border-l-4 border-teal-400">
+                        <h4 class="font-bold text-teal-800 mb-3 flex items-center">
+                            <i class="fas fa-clock text-teal-600 mr-2"></i>
+                            มาให้ตรงเวลานัด
+                        </h4>
+                        <div class="space-y-2 text-teal-700">
+                            <p class="text-sm">• การมาสาย 30 นาที = เสียเวลาฟอก 30 นาที</p>
+                            <p class="text-sm">• ตั้งเตือนล่วงหน้า และเตรียมตัวก่อนเวลา</p>
+                            <p class="text-sm">• ประสานงานการเดินทางให้เหมาะสม</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-cyan-50 rounded-xl p-4 border-l-4 border-cyan-400">
+                        <h4 class="font-bold text-cyan-800 mb-3 flex items-center">
+                            <i class="fas fa-user-md text-cyan-600 mr-2"></i>
+                            ปฏิบัติตามคำแนะนำทีมรักษา
+                        </h4>
+                        <div class="space-y-2 text-cyan-700">
+                            <p class="text-sm">• รักษาน้ำหนักระหว่างการฟอกให้เหมาะสม</p>
+                            <p class="text-sm">• ทานยาตามเวลาที่กำหนด</p>
+                            <p class="text-sm">• รายงานอาการผิดปกติทันที</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Priority actions for HD
+                priorityDiv.innerHTML = `
+                    <div class="bg-red-100 border-2 border-red-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-red-800 mb-2">เร่งด่วน</h4>
+                        <p class="text-red-700 text-sm">เพิ่มเวลาฟอกเป็น ${Math.max(4.5, inputData.time + 0.5)} ชั่วโมง</p>
+                    </div>
+                    <div class="bg-orange-100 border-2 border-orange-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-tachometer-alt text-orange-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-orange-800 mb-2">สำคัญ</h4>
+                        <p class="text-orange-700 text-sm">เพิ่ม BFR เป็น 350+ mL/min</p>
+                    </div>
+                    <div class="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-user-check text-yellow-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-yellow-800 mb-2">ติดตาม</h4>
+                        <p class="text-yellow-700 text-sm">ปรับพฤติกรรมผู้ป่วย</p>
+                    </div>
+                `;
+                
+            } else {
+                // PD recommendations
+                technicalDiv.innerHTML = `
+                    <div class="recommendation-card bg-blue-50 rounded-xl p-4 border-l-4 border-blue-400">
+                        <h4 class="font-bold text-blue-800 mb-3 flex items-center">
+                            <i class="fas fa-clock text-blue-600 mr-2"></i>
+                            เพิ่ม Dwell Time
+                        </h4>
+                        <div class="space-y-2 text-blue-700">
+                            <p class="text-sm">• เพิ่มเวลาแช่น้ำยาในช่องท้องให้นานขึ้น</p>
+                            <p class="text-sm">• CAPD: เพิ่มจาก 4-6 ชั่วโมง เป็น 6-8 ชั่วโมง</p>
+                            <p class="text-sm">• APD: เพิ่ม dwell time ในรอบสุดท้าย</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-purple-50 rounded-xl p-4 border-l-4 border-purple-400">
+                        <h4 class="font-bold text-purple-800 mb-3 flex items-center">
+                            <i class="fas fa-flask text-purple-600 mr-2"></i>
+                            เปลี่ยนชนิดน้ำยา
+                        </h4>
+                        <div class="space-y-2 text-purple-700">
+                            <p class="text-sm">• เพิ่มความเข้มข้นของ dextrose</p>
+                            <p class="text-sm">• พิจารณาใช้ icodextrin สำหรับ long dwell</p>
+                            <p class="text-sm">• ใช้ amino acid solution ในบางรอบ</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-green-50 rounded-xl p-4 border-l-4 border-green-400">
+                        <h4 class="font-bold text-green-800 mb-3 flex items-center">
+                            <i class="fas fa-plus text-green-600 mr-2"></i>
+                            เพิ่มจำนวนรอบ
+                        </h4>
+                        <div class="space-y-2 text-green-700">
+                            <p class="text-sm">• CAPD: เพิ่มจาก 4 เป็น 5 รอบต่อวัน</p>
+                            <p class="text-sm">• APD: เพิ่มจำนวน cycle ในแต่ละคืน</p>
+                            <p class="text-sm">• พิจารณาเปลี่ยนจาก CAPD เป็น APD</p>
+                        </div>
+                    </div>
+                `;
+                
+                patientCareDiv.innerHTML = `
+                    <div class="recommendation-card bg-red-50 rounded-xl p-4 border-l-4 border-red-400">
+                        <h4 class="font-bold text-red-800 mb-3 flex items-center">
+                            <i class="fas fa-hand-sparkles text-red-600 mr-2"></i>
+                            รักษาความสะอาด
+                        </h4>
+                        <div class="space-y-2 text-red-700">
+                            <p class="text-sm">• ล้างมือทุกครั้งก่อนทำ PD</p>
+                            <p class="text-sm">• ใช้หน้ากากและรักษาสภาพแวดล้อมสะอาด</p>
+                            <p class="text-sm">• ตรวจสอบอุปกรณ์ก่อนใช้ทุกครั้ง</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-orange-50 rounded-xl p-4 border-l-4 border-orange-400">
+                        <h4 class="font-bold text-orange-800 mb-3 flex items-center">
+                            <i class="fas fa-clock text-orange-600 mr-2"></i>
+                            รักษาเวลาให้สม่ำเสมอ
+                        </h4>
+                        <div class="space-y-2 text-orange-700">
+                            <p class="text-sm">• เปลี่ยนถุงตามเวลาที่กำหนดเคร่งครัด</p>
+                            <p class="text-sm">• ไม่ควรเลื่อนเวลาเกิน 1 ชั่วโมง</p>
+                            <p class="text-sm">• ตั้งเตือนเพื่อไม่ให้ลืม</p>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-card bg-teal-50 rounded-xl p-4 border-l-4 border-teal-400">
+                        <h4 class="font-bold text-teal-800 mb-3 flex items-center">
+                            <i class="fas fa-eye text-teal-600 mr-2"></i>
+                            สังเกตน้ำยาที่ระบายออก
+                        </h4>
+                        <div class="space-y-2 text-teal-700">
+                            <p class="text-sm">• ตรวจสอบสี ความใส และกลิ่น</p>
+                            <p class="text-sm">• วัดปริมาณน้ำยาที่ระบายออกทุกครั้ง</p>
+                            <p class="text-sm">• รายงานความผิดปกติทันที</p>
+                        </div>
+                    </div>
+                `;
+                
+                priorityDiv.innerHTML = `
+                    <div class="bg-red-100 border-2 border-red-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-red-800 mb-2">เร่งด่วน</h4>
+                        <p class="text-red-700 text-sm">เพิ่ม dwell time หรือจำนวนรอบ</p>
+                    </div>
+                    <div class="bg-orange-100 border-2 border-orange-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-flask text-orange-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-orange-800 mb-2">สำคัญ</h4>
+                        <p class="text-orange-700 text-sm">ปรับชนิดน้ำยา PD</p>
+                    </div>
+                    <div class="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 text-center">
+                        <i class="fas fa-user-check text-yellow-600 text-3xl mb-2"></i>
+                        <h4 class="font-bold text-yellow-800 mb-2">ติดตาม</h4>
+                        <p class="text-yellow-700 text-sm">ประเมิน residual function</p>
+                    </div>
+                `;
+            }
+        }
+
+        function resetCalculator() {
+            currentStep = 1;
+            currentMode = null;
+            updateProgress(1);
+            
+            // Show mode selection
+            document.getElementById('modeSelection').classList.remove('hidden');
+            document.getElementById('hdCalculator').classList.add('hidden');
+            document.getElementById('pdCalculator').classList.add('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('smartRecommendations').classList.add('hidden');
+            
+            // Clear all inputs
+            document.querySelectorAll('input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'95e41229d307ce9b',t:'MTc1MjM2MDMyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
